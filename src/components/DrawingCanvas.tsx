@@ -1,6 +1,13 @@
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, useCallback } from "react";
 
-const DrawingCanvas = () => {
+interface DrawingCanvasProps {
+  currentColor: string;
+  brushSize: number;
+  tool: 'brush' | 'eraser';
+  onCanvasReady?: (canvas: HTMLCanvasElement) => void;
+}
+
+const DrawingCanvas = ({ currentColor, brushSize, tool, onCanvasReady }: DrawingCanvasProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
 
@@ -16,27 +23,75 @@ const DrawingCanvas = () => {
     canvas.height = canvas.offsetHeight;
 
     // Set drawing styles
-    ctx.strokeStyle = '#6366f1';
-    ctx.lineWidth = 3;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-  }, []);
+    
+    // Clear canvas with a fun background
+    ctx.fillStyle = '#fef9f3';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    if (onCanvasReady) {
+      onCanvasReady(canvas);
+    }
+  }, [onCanvasReady]);
 
-  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    setIsDrawing(true);
-    
+    if (tool === 'eraser') {
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.strokeStyle = 'rgba(0,0,0,1)';
+    } else {
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.strokeStyle = currentColor;
+    }
+    ctx.lineWidth = brushSize;
+  }, [currentColor, brushSize, tool]);
+
+  const getCoordinates = useCallback((e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return null;
+
     const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+
+    if ('touches' in e) {
+      const touch = e.touches[0];
+      return {
+        x: (touch.clientX - rect.left) * scaleX,
+        y: (touch.clientY - rect.top) * scaleY
+      };
+    } else {
+      return {
+        x: (e.clientX - rect.left) * scaleX,
+        y: (e.clientY - rect.top) * scaleY
+      };
+    }
+  }, []);
+
+  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const coords = getCoordinates(e);
+    if (!coords) return;
+
+    setIsDrawing(true);
     ctx.beginPath();
-    ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+    ctx.moveTo(coords.x, coords.y);
   };
 
-  const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const draw = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
     if (!isDrawing) return;
     
     const canvas = canvasRef.current;
@@ -45,8 +100,10 @@ const DrawingCanvas = () => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const rect = canvas.getBoundingClientRect();
-    ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+    const coords = getCoordinates(e);
+    if (!coords) return;
+
+    ctx.lineTo(coords.x, coords.y);
     ctx.stroke();
   };
 
@@ -54,25 +111,18 @@ const DrawingCanvas = () => {
     setIsDrawing(false);
   };
 
-  const clearCanvas = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-  };
-
   return (
-    <div className="flex-1 relative">
+    <div className="flex-1 relative bg-gradient-to-br from-yellow-50 to-pink-50 rounded-3xl m-4 shadow-lg overflow-hidden">
       <canvas
         ref={canvasRef}
-        className="w-full h-full cursor-crosshair"
+        className={`w-full h-full ${tool === 'eraser' ? 'cursor-grab' : 'cursor-crosshair'} touch-none`}
         onMouseDown={startDrawing}
         onMouseMove={draw}
         onMouseUp={stopDrawing}
         onMouseLeave={stopDrawing}
+        onTouchStart={startDrawing}
+        onTouchMove={draw}
+        onTouchEnd={stopDrawing}
       />
     </div>
   );
