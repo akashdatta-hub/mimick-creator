@@ -20,12 +20,14 @@ const DrawingCanvas = ({ currentColor, brushSize, tool, onCanvasReady }: Drawing
       if (!ctx) return;
 
       // Save current drawing
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const imageData = canvas.width > 0 ? ctx.getImageData(0, 0, canvas.width, canvas.height) : null;
       
       // Set canvas size to container size
-      const rect = canvas.getBoundingClientRect();
-      canvas.width = rect.width;
-      canvas.height = rect.height;
+      const container = canvas.parentElement;
+      if (!container) return;
+      
+      canvas.width = container.clientWidth;
+      canvas.height = container.clientHeight;
 
       // Set drawing styles
       ctx.lineCap = 'round';
@@ -36,21 +38,26 @@ const DrawingCanvas = ({ currentColor, brushSize, tool, onCanvasReady }: Drawing
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       
       // Restore drawing if it existed
-      if (imageData.width > 0) {
-        ctx.putImageData(imageData, 0, 0);
+      if (imageData && imageData.width > 0) {
+        try {
+          ctx.putImageData(imageData, 0, 0);
+        } catch (e) {
+          // Ignore errors if canvas size changed
+        }
       }
     };
 
     resizeCanvas();
     
-    if (onCanvasReady) {
+    // Only call onCanvasReady once, not on every resize
+    if (onCanvasReady && canvas.width > 0) {
       onCanvasReady(canvas);
     }
 
     // Handle window resize
     window.addEventListener('resize', resizeCanvas);
     return () => window.removeEventListener('resize', resizeCanvas);
-  }, [onCanvasReady]);
+  }, []); // Remove onCanvasReady from dependencies to prevent infinite loop
 
   useEffect(() => {
     const canvas = canvasRef.current;

@@ -14,12 +14,11 @@ interface PlayScreenProps {
 export const PlayScreen = ({ word, getTwistPrompt, onNext }: PlayScreenProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [currentColor, setCurrentColor] = useState('#ef4444');
-  const [brushSize, setBrushSize] = useState(8);
-  const [tool, setTool] = useState<'brush' | 'eraser'>('brush');
   const [canvasHistory, setCanvasHistory] = useState<ImageData[]>([]);
+  const [currentStep, setCurrentStep] = useState(1); // 1=Draw, 2=Twist, 3=Voice, 4=Complete
   const [twistPrompt, setTwistPrompt] = useState<string>('');
   const [isRecording, setIsRecording] = useState(false);
-  const [hasSpoken, setHasSpoken] = useState(false);
+  const [hasDrawn, setHasDrawn] = useState(false);
 
   const saveCanvasState = () => {
     const canvas = canvasRef.current;
@@ -32,7 +31,7 @@ export const PlayScreen = ({ word, getTwistPrompt, onNext }: PlayScreenProps) =>
 
   const handleCanvasReady = (canvas: HTMLCanvasElement) => {
     canvasRef.current = canvas;
-    saveCanvasState();
+    // Don't save state immediately to prevent infinite loop
   };
 
   const handleUndo = () => {
@@ -55,13 +54,24 @@ export const PlayScreen = ({ word, getTwistPrompt, onNext }: PlayScreenProps) =>
     setCanvasHistory([]);
   };
 
-  const handleTwist = () => {
-    setTwistPrompt(getTwistPrompt(word));
+  const handleNextStep = () => {
+    if (currentStep === 1) {
+      setHasDrawn(true);
+      saveCanvasState();
+      setTwistPrompt(getTwistPrompt(word));
+      setCurrentStep(2);
+    } else if (currentStep === 2) {
+      setCurrentStep(3);
+    } else if (currentStep === 3) {
+      setCurrentStep(4);
+    } else {
+      onNext();
+    }
   };
 
   const handleVoiceRecord = () => {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-      setHasSpoken(true);
+      handleNextStep();
       return;
     }
 
@@ -71,62 +81,71 @@ export const PlayScreen = ({ word, getTwistPrompt, onNext }: PlayScreenProps) =>
     recognition.onstart = () => setIsRecording(true);
     recognition.onend = () => {
       setIsRecording(false);
-      setHasSpoken(true);
+      handleNextStep();
     };
     recognition.onresult = (event: any) => {
       const transcript = event.results[0][0].transcript;
       console.log('Heard:', transcript);
-      setHasSpoken(true);
     };
 
     recognition.start();
   };
 
+  const getStepTitle = () => {
+    switch (currentStep) {
+      case 1: return `Draw your ${word}!`;
+      case 2: return `Now try this twist!`;
+      case 3: return `Say a sentence with "${word}"!`;
+      case 4: return `Amazing work!`;
+      default: return `Draw your ${word}!`;
+    }
+  };
+
+  const getStepInstruction = () => {
+    switch (currentStep) {
+      case 1: return "Use your creativity to draw what you imagine!";
+      case 2: return twistPrompt;
+      case 3: return `Record yourself saying a sentence that includes the word "${word}"`;
+      case 4: return "You completed all the steps! Ready for the next word?";
+      default: return "";
+    }
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-br from-yellow-100 via-green-50 to-blue-100">
-      {/* Header */}
+      {/* Header with Step Progress */}
       <div className="bg-white shadow-sm p-4">
-        <div className="flex items-center justify-between max-w-6xl mx-auto">
-          <div className="flex items-center space-x-4">
-            <h1 className="text-2xl font-bold text-gray-800">
-              Draw: <span className="text-primary">{word}</span>
-            </h1>
-            {twistPrompt && (
-              <div className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm font-medium">
-                ✨ {twistPrompt}
+        <div className="max-w-6xl mx-auto">
+          {/* Progress Steps */}
+          <div className="flex items-center justify-center mb-4">
+            {[1, 2, 3, 4].map((step) => (
+              <div key={step} className="flex items-center">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                  currentStep === step 
+                    ? 'bg-primary text-white' 
+                    : currentStep > step 
+                      ? 'bg-green-500 text-white' 
+                      : 'bg-gray-200 text-gray-500'
+                }`}>
+                  {currentStep > step ? '✓' : step}
+                </div>
+                {step < 4 && (
+                  <div className={`w-12 h-1 mx-2 ${
+                    currentStep > step ? 'bg-green-500' : 'bg-gray-200'
+                  }`} />
+                )}
               </div>
-            )}
+            ))}
           </div>
-          <div className="flex items-center space-x-3">
-            <Button
-              onClick={handleTwist}
-              className="bg-purple-500 hover:bg-purple-600 text-white"
-            >
-              <Wand2 className="w-4 h-4 mr-2" />
-              Twist!
-            </Button>
-            <Button
-              onClick={handleVoiceRecord}
-              disabled={isRecording}
-              className={`${
-                hasSpoken
-                  ? 'bg-green-500 hover:bg-green-600'
-                  : 'bg-blue-500 hover:bg-blue-600'
-              } text-white`}
-            >
-              {isRecording ? (
-                <MicOff className="w-4 h-4 mr-2" />
-              ) : (
-                <Mic className="w-4 h-4 mr-2" />
-              )}
-              {hasSpoken ? '✓ Said it!' : 'Say it!'}
-            </Button>
-            <Button
-              onClick={onNext}
-              className="bg-green-500 hover:bg-green-600 text-white px-8"
-            >
-              Done! 🎉
-            </Button>
+          
+          {/* Current Step Info */}
+          <div className="text-center">
+            <h1 className="text-3xl font-bold text-gray-800 mb-2">
+              {getStepTitle()}
+            </h1>
+            <p className="text-lg text-gray-600">
+              {getStepInstruction()}
+            </p>
           </div>
         </div>
       </div>
@@ -136,24 +155,77 @@ export const PlayScreen = ({ word, getTwistPrompt, onNext }: PlayScreenProps) =>
         <div className="flex-1">
           <DrawingCanvas
             currentColor={currentColor}
-            brushSize={brushSize}
-            tool={tool}
+            brushSize={12}
+            tool="brush"
             onCanvasReady={handleCanvasReady}
           />
         </div>
       </main>
 
       {/* Controls */}
-      <KidsControls
-        currentColor={currentColor}
-        onColorChange={setCurrentColor}
-        brushSize={brushSize}
-        onBrushSizeChange={setBrushSize}
-        tool={tool}
-        onToolChange={setTool}
-        onClear={handleClear}
-        onUndo={handleUndo}
-      />
+      <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl p-6 mx-4 mb-4">
+        <div className="flex flex-col items-center gap-4">
+          {/* Step-specific controls */}
+          {currentStep === 1 && (
+            <>
+              <KidsControls
+                currentColor={currentColor}
+                onColorChange={setCurrentColor}
+                onClear={handleClear}
+                onUndo={handleUndo}
+              />
+              <Button
+                onClick={handleNextStep}
+                size="lg"
+                className="bg-green-500 hover:bg-green-600 text-white px-8 py-4 text-lg font-bold"
+              >
+                I'm Done Drawing! ✏️
+              </Button>
+            </>
+          )}
+          
+          {currentStep === 2 && (
+            <Button
+              onClick={handleNextStep}
+              size="lg"
+              className="bg-purple-500 hover:bg-purple-600 text-white px-8 py-4 text-lg font-bold"
+            >
+              Continue! ✨
+            </Button>
+          )}
+          
+          {currentStep === 3 && (
+            <Button
+              onClick={handleVoiceRecord}
+              disabled={isRecording}
+              size="lg"
+              className="bg-blue-500 hover:bg-blue-600 text-white px-8 py-4 text-lg font-bold"
+            >
+              {isRecording ? (
+                <>
+                  <MicOff className="w-6 h-6 mr-2" />
+                  Listening...
+                </>
+              ) : (
+                <>
+                  <Mic className="w-6 h-6 mr-2" />
+                  Record Sentence 🎤
+                </>
+              )}
+            </Button>
+          )}
+          
+          {currentStep === 4 && (
+            <Button
+              onClick={onNext}
+              size="lg"
+              className="bg-green-500 hover:bg-green-600 text-white px-8 py-4 text-lg font-bold"
+            >
+              Next Word! 🎉
+            </Button>
+          )}
+        </div>
+      </div>
     </div>
   );
 };
