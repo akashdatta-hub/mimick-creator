@@ -112,58 +112,58 @@ export const PlayScreen = ({ word, getTwistPrompt, onNext }: PlayScreenProps) =>
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-br from-yellow-100 via-green-50 to-blue-100">
-      {/* Header with Step Progress */}
-      <div className="bg-white shadow-sm p-4">
-        <div className="max-w-6xl mx-auto">
-          {/* Progress Steps */}
-          <div className="flex items-center justify-center mb-4">
-            {[1, 2, 3, 4].map((step) => (
-              <div key={step} className="flex items-center">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                  currentStep === step 
-                    ? 'bg-primary text-white' 
-                    : currentStep > step 
-                      ? 'bg-green-500 text-white' 
-                      : 'bg-gray-200 text-gray-500'
-                }`}>
-                  {currentStep > step ? '✓' : step}
-                </div>
-                {step < 4 && (
-                  <div className={`w-12 h-1 mx-2 ${
-                    currentStep > step ? 'bg-green-500' : 'bg-gray-200'
-                  }`} />
-                )}
+    <div className="flex flex-col h-screen bg-gradient-to-br from-yellow-100 via-green-50 to-blue-100">
+      {/* Compact Header */}
+      <div className="bg-white/95 backdrop-blur-sm shadow-sm px-4 py-2 flex items-center justify-between">
+        {/* Progress Steps */}
+        <div className="flex items-center">
+          {[1, 2, 3, 4].map((step) => (
+            <div key={step} className="flex items-center">
+              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                currentStep === step 
+                  ? 'bg-primary text-white' 
+                  : currentStep > step 
+                    ? 'bg-green-500 text-white' 
+                    : 'bg-gray-200 text-gray-500'
+              }`}>
+                {currentStep > step ? '✓' : step}
               </div>
-            ))}
-          </div>
-          
-          {/* Current Step Info */}
-          <div className="text-center">
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">
-              {getStepTitle()}
-            </h1>
-            <p className="text-lg text-gray-600">
+              {step < 4 && (
+                <div className={`w-8 h-0.5 mx-1 ${
+                  currentStep > step ? 'bg-green-500' : 'bg-gray-200'
+                }`} />
+              )}
+            </div>
+          ))}
+        </div>
+        
+        {/* Current Step Info */}
+        <div className="flex-1 text-center">
+          <h1 className="text-xl font-bold text-gray-800">
+            {getStepTitle()}
+          </h1>
+          {currentStep === 2 && (
+            <p className="text-sm text-gray-600 mt-1">
               {getStepInstruction()}
             </p>
-          </div>
+          )}
         </div>
+        
+        <div className="w-20"></div> {/* Spacer for balance */}
       </div>
 
-      {/* Drawing Area */}
-      <main className="flex-1 flex">
-        <div className="flex-1">
-          <DrawingCanvas
-            currentColor={currentColor}
-            brushSize={12}
-            tool="brush"
-            onCanvasReady={handleCanvasReady}
-          />
-        </div>
+      {/* Full Screen Drawing Area */}
+      <main className="flex-1 relative overflow-hidden">
+        <DrawingCanvas
+          currentColor={currentColor}
+          brushSize={12}
+          tool="brush"
+          onCanvasReady={handleCanvasReady}
+        />
       </main>
 
-      {/* Controls */}
-      <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl p-6 mx-4 mb-4">
+      {/* Floating Controls */}
+      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl px-4 py-3">
         <div className="flex flex-col items-center gap-4">
           {/* Step-specific controls */}
           {currentStep === 1 && (

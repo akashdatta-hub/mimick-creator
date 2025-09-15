@@ -136,7 +136,7 @@ const DrawingCanvas = ({ currentColor, brushSize, tool, onCanvasReady }: Drawing
   };
 
   return (
-    <div className="flex-1 relative bg-gradient-to-br from-yellow-50 to-pink-50 rounded-3xl m-4 shadow-lg overflow-hidden">
+    <div className="absolute inset-0 bg-gradient-to-br from-yellow-50 to-pink-50 overflow-hidden">
       <canvas
         ref={canvasRef}
         className={`w-full h-full ${tool === 'eraser' ? 'cursor-grab' : 'cursor-crosshair'} touch-none`}
