@@ -1,81 +1,53 @@
-import { useRef, useState, useCallback } from "react";
-import Header from "@/components/Header";
-import DrawingCanvas from "@/components/DrawingCanvas";
-import KidsControls from "@/components/KidsControls";
+import { useGameState } from "@/hooks/useGameState";
+import { IntroScreen } from "@/components/IntroScreen";
+import { PlayScreen } from "@/components/PlayScreen";
+import { CelebrateScreen } from "@/components/CelebrateScreen";
 
 const Index = () => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [currentColor, setCurrentColor] = useState('#ef4444'); // Red
-  const [brushSize, setBrushSize] = useState(8); // Medium
-  const [tool, setTool] = useState<'brush' | 'eraser'>('brush');
-  const [canvasHistory, setCanvasHistory] = useState<ImageData[]>([]);
+  const { 
+    gameState, 
+    nextScreen, 
+    resetGame, 
+    getClue, 
+    getTwistPrompt, 
+    isGameComplete 
+  } = useGameState();
 
-  const saveCanvasState = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    setCanvasHistory(prev => [...prev.slice(-9), imageData]); // Keep last 10 states
-  }, []);
-
-  const handleCanvasReady = useCallback((canvas: HTMLCanvasElement) => {
-    canvasRef.current = canvas;
-    saveCanvasState();
-  }, [saveCanvasState]);
-
-  const handleUndo = () => {
-    const canvas = canvasRef.current;
-    if (!canvas || canvasHistory.length === 0) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const lastState = canvasHistory[canvasHistory.length - 1];
-    ctx.putImageData(lastState, 0, 0);
-    setCanvasHistory(prev => prev.slice(0, -1));
+  const renderScreen = () => {
+    switch (gameState.currentScreen) {
+      case 'intro':
+        return (
+          <IntroScreen
+            word={gameState.currentWord}
+            clue={getClue(gameState.currentWord)}
+            onNext={nextScreen}
+          />
+        );
+      case 'play':
+        return (
+          <PlayScreen
+            word={gameState.currentWord}
+            getTwistPrompt={getTwistPrompt}
+            onNext={nextScreen}
+          />
+        );
+      case 'celebrate':
+        return (
+          <CelebrateScreen
+            word={gameState.currentWord}
+            currentRound={gameState.currentRound}
+            totalRounds={gameState.totalRounds}
+            onNext={nextScreen}
+            isGameComplete={isGameComplete()}
+            onRestart={resetGame}
+          />
+        );
+      default:
+        return null;
+    }
   };
 
-  const handleClear = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    // Clear with fun background
-    ctx.fillStyle = '#fef9f3';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    setCanvasHistory([]);
-  };
-
-  return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-blue-100 via-purple-50 to-pink-100">
-      <Header />
-      
-      <main className="flex-1 flex flex-col">
-        <DrawingCanvas 
-          currentColor={currentColor}
-          brushSize={brushSize}
-          tool={tool}
-          onCanvasReady={handleCanvasReady}
-        />
-      </main>
-
-      <KidsControls
-        currentColor={currentColor}
-        onColorChange={setCurrentColor}
-        brushSize={brushSize}
-        onBrushSizeChange={setBrushSize}
-        tool={tool}
-        onToolChange={setTool}
-        onClear={handleClear}
-        onUndo={handleUndo}
-      />
-    </div>
-  );
+  return renderScreen();
 };
 
 export default Index;

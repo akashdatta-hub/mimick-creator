@@ -15,24 +15,41 @@ const DrawingCanvas = ({ currentColor, brushSize, tool, onCanvasReady }: Drawing
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    const resizeCanvas = () => {
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
 
-    // Set canvas size
-    canvas.width = canvas.offsetWidth;
-    canvas.height = canvas.offsetHeight;
+      // Save current drawing
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      
+      // Set canvas size to container size
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width;
+      canvas.height = rect.height;
 
-    // Set drawing styles
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    
-    // Clear canvas with a fun background
-    ctx.fillStyle = '#fef9f3';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+      // Set drawing styles
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      
+      // Clear canvas with a fun background
+      ctx.fillStyle = '#fef9f3';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Restore drawing if it existed
+      if (imageData.width > 0) {
+        ctx.putImageData(imageData, 0, 0);
+      }
+    };
+
+    resizeCanvas();
     
     if (onCanvasReady) {
       onCanvasReady(canvas);
     }
+
+    // Handle window resize
+    window.addEventListener('resize', resizeCanvas);
+    return () => window.removeEventListener('resize', resizeCanvas);
   }, [onCanvasReady]);
 
   useEffect(() => {
