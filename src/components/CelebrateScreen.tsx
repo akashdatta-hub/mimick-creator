@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Star, Mic, Wand2 } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface CelebrateScreenProps {
   word: string;
@@ -11,42 +12,54 @@ interface CelebrateScreenProps {
   onRestart?: () => void;
 }
 
-const stickers = [
+const getStickerName = (name: string, t: any) => {
+  const stickerNames = {
+    'Creative': t('creative', 'Creative'),
+    'Clear Speaker': t('clear_speaker', 'Clear Speaker'),
+    'Fun Twist': t('fun_twist', 'Fun Twist')
+  };
+  return stickerNames[name as keyof typeof stickerNames] || name;
+};
+
+const getStickers = (t: any) => [
   { name: 'Creative', icon: Star, color: 'text-yellow-500', bg: 'bg-yellow-100' },
   { name: 'Clear Speaker', icon: Mic, color: 'text-blue-500', bg: 'bg-blue-100' },
   { name: 'Fun Twist', icon: Wand2, color: 'text-purple-500', bg: 'bg-purple-100' }
 ];
 
-const celebrations = [
-  "Amazing creativity!",
-  "What a wonderful drawing!",
-  "You're so artistic!",
-  "Fantastic work!",
-  "Beautiful imagination!"
+const getCelebrations = (t: any) => [
+  t('celebration_1', 'Amazing creativity!'),
+  t('celebration_2', 'What a wonderful drawing!'),
+  t('celebration_3', 'You\'re so artistic!'),
+  t('celebration_4', 'Fantastic work!'),
+  t('celebration_5', 'Beautiful imagination!')
 ];
 
-export const CelebrateScreen = ({ 
-  word, 
-  currentRound, 
-  totalRounds, 
-  onNext, 
+export const CelebrateScreen = ({
+  word,
+  currentRound,
+  totalRounds,
+  onNext,
   isGameComplete,
-  onRestart 
+  onRestart
 }: CelebrateScreenProps) => {
-  const [sticker, setSticker] = useState(stickers[0]);
-  const [celebration, setCelebration] = useState(celebrations[0]);
+  const { t } = useLanguage();
+  const [sticker, setSticker] = useState(getStickers(t)[0]);
+  const [celebration, setCelebration] = useState('');
   const [showConfetti, setShowConfetti] = useState(false);
 
   useEffect(() => {
     // Random sticker and celebration message
+    const stickers = getStickers(t);
+    const celebrations = getCelebrations(t);
     setSticker(stickers[Math.floor(Math.random() * stickers.length)]);
     setCelebration(celebrations[Math.floor(Math.random() * celebrations.length)]);
     setShowConfetti(true);
-    
+
     // Remove confetti after animation
     const timer = setTimeout(() => setShowConfetti(false), 3000);
     return () => clearTimeout(timer);
-  }, [word]);
+  }, [word, t]);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-pink-100 via-yellow-50 to-green-100 p-6 relative overflow-hidden">
@@ -76,7 +89,7 @@ export const CelebrateScreen = ({
             🎉 {celebration} 🎉
           </h1>
           <p className="text-lg text-gray-600">
-            Your drawing of "<span className="font-semibold text-primary">{word}</span>" is wonderful!
+            {t('drawing_wonderful', 'Your drawing of "%word%" is wonderful!', { word })}
           </p>
         </div>
 
@@ -84,7 +97,7 @@ export const CelebrateScreen = ({
         <div className="space-y-3">
           <div className={`${sticker.bg} rounded-2xl p-6 mx-auto inline-block`}>
             <sticker.icon className={`w-12 h-12 ${sticker.color} mx-auto mb-2`} />
-            <p className="font-semibold text-gray-700">{sticker.name}</p>
+            <p className="font-semibold text-gray-700">{getStickerName(sticker.name, t)}</p>
           </div>
         </div>
 
@@ -101,7 +114,7 @@ export const CelebrateScreen = ({
             ))}
           </div>
           <p className="text-sm text-gray-500">
-            Round {currentRound} of {totalRounds}
+            {t('round_progress', 'Round %currentRound% of %totalRounds%', { currentRound: currentRound.toString(), totalRounds: totalRounds.toString() })}
           </p>
         </div>
 
@@ -111,14 +124,14 @@ export const CelebrateScreen = ({
             onClick={onNext}
             className="bg-purple-500 hover:bg-purple-600 text-white w-full py-4 text-lg rounded-2xl"
           >
-            Complete Day 1 ✨
+            {t('complete_day_1', 'Complete Day 1 ✨')}
           </Button>
         ) : (
           <Button
             onClick={onNext}
             className="bg-primary hover:bg-primary/90 text-primary-foreground w-full py-4 text-lg rounded-2xl"
           >
-            Next Word 📝
+            {t('next_word', 'Next Word 📝')}
           </Button>
         )}
       </div>

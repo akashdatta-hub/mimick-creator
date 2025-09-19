@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Trash2, Palette } from "lucide-react";
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface KidsControlsProps {
   currentColor: string;
@@ -25,13 +26,14 @@ const KidsControls = ({
   onClear,
   onDone,
 }: KidsControlsProps) => {
+  const { t } = useLanguage();
   return (
     <div className="w-full max-w-4xl mx-auto">
       {/* Color Picker Section */}
       <div className="mb-6">
         <div className="flex items-center justify-center mb-4">
           <Palette className="w-5 h-5 text-purple-500 mr-2" />
-          <span className="text-base font-medium text-gray-700">Pick a Color:</span>
+          <span className="text-base font-medium text-gray-700">{t('pick_a_color', 'Pick a Color:')}</span>
         </div>
         <div className="flex items-center justify-center gap-3 flex-wrap">
           {colors.map((color) => (
@@ -64,14 +66,14 @@ const KidsControls = ({
           className="h-12 px-6 border-2 border-red-300 text-red-600 hover:bg-red-50 hover:border-red-400 transition-colors duration-200 font-medium"
         >
           <Trash2 className="w-5 h-5 mr-2" />
-          Clear All
+          {t('clear_all', 'Clear All')}
         </Button>
         <Button
           onClick={onDone}
           size="lg"
           className="bg-green-500 hover:bg-green-600 text-white px-8 py-3 h-12 text-lg font-bold transition-colors duration-200"
         >
-          I'm Done Drawing! ✏️
+          {t('im_done_drawing', 'I\'m Done Drawing! ✏️')}
         </Button>
       </div>
     </div>

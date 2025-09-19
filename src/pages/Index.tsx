@@ -3,27 +3,36 @@ import { IntroScreen } from "@/components/IntroScreen";
 import { PlayScreen } from "@/components/PlayScreen";
 import { CelebrateScreen } from "@/components/CelebrateScreen";
 import { SurveyScreen } from "@/components/SurveyScreen";
+import { EndScreen } from "@/components/EndScreen";
+import { LanguageHeader } from "@/components/LanguageHeader";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { useEffect } from "react";
 import { trackScreenView, trackUserFlowEvent } from "@/utils/analytics";
 
 const Index = () => {
+  const { currentLanguage } = useLanguage();
   const {
     gameState,
     nextScreen,
     resetGame,
+    getLocalizedWord,
     getClue,
     getTwistPrompt,
     isGameComplete,
-    goToReflection
-  } = useGameState();
+    goToReflection,
+    goToEndScreen
+  } = useGameState(currentLanguage);
 
   // Track screen changes
   useEffect(() => {
     const screenName = `${gameState.currentScreen}_screen`;
+    const localizedWord = getLocalizedWord(gameState.currentWordKey);
     const properties = {
-      word: gameState.currentWord,
+      word: localizedWord,
+      wordKey: gameState.currentWordKey,
       round: gameState.currentRound,
-      totalRounds: gameState.totalRounds
+      totalRounds: gameState.totalRounds,
+      language: currentLanguage
     };
 
     trackScreenView(screenName, properties);
@@ -33,7 +42,7 @@ const Index = () => {
       case 'intro':
         trackUserFlowEvent('INTRO_SCREEN_VIEW', properties);
         if (gameState.currentRound === 1) {
-          trackUserFlowEvent('WORD_STARTED', { word: gameState.currentWord });
+          trackUserFlowEvent('WORD_STARTED', { word: localizedWord, wordKey: gameState.currentWordKey });
         }
         break;
       case 'play':
@@ -41,29 +50,34 @@ const Index = () => {
         break;
       case 'celebrate':
         trackUserFlowEvent('CELEBRATE_SCREEN_VIEW', properties);
-        trackUserFlowEvent('WORD_COMPLETED', { word: gameState.currentWord });
+        trackUserFlowEvent('WORD_COMPLETED', { word: localizedWord, wordKey: gameState.currentWordKey });
         break;
       case 'survey':
         trackUserFlowEvent('SURVEY_SCREEN_VIEW', properties);
         trackUserFlowEvent('GAME_COMPLETED', { totalWords: gameState.totalRounds });
         break;
+      case 'end':
+        trackUserFlowEvent('END_SCREEN_VIEW', properties);
+        trackUserFlowEvent('GAME_FULLY_COMPLETED', { totalWords: gameState.totalRounds });
+        break;
     }
-  }, [gameState.currentScreen, gameState.currentWord, gameState.currentRound]);
+  }, [gameState.currentScreen, gameState.currentWordKey, gameState.currentRound, currentLanguage, getLocalizedWord]);
 
   const renderScreen = () => {
     switch (gameState.currentScreen) {
       case 'intro':
         return (
           <IntroScreen
-            word={gameState.currentWord}
-            clue={getClue(gameState.currentWord)}
+            word={getLocalizedWord(gameState.currentWordKey)}
+            clue={getClue(gameState.currentWordKey)}
             onNext={nextScreen}
           />
         );
       case 'play':
         return (
           <PlayScreen
-            word={gameState.currentWord}
+            word={getLocalizedWord(gameState.currentWordKey)}
+            wordKey={gameState.currentWordKey}
             getTwistPrompt={getTwistPrompt}
             onNext={nextScreen}
           />
@@ -71,7 +85,7 @@ const Index = () => {
       case 'celebrate':
         return (
           <CelebrateScreen
-            word={gameState.currentWord}
+            word={getLocalizedWord(gameState.currentWordKey)}
             currentRound={gameState.currentRound}
             totalRounds={gameState.totalRounds}
             onNext={nextScreen}
@@ -82,10 +96,13 @@ const Index = () => {
       case 'survey':
         return (
           <SurveyScreen
-            onComplete={() => {
-              // Survey completed - game ends here
-              console.log('Survey completed! Game finished.');
-            }}
+            onComplete={goToEndScreen}
+          />
+        );
+      case 'end':
+        return (
+          <EndScreen
+            onRestart={resetGame}
           />
         );
       default:
@@ -93,7 +110,12 @@ const Index = () => {
     }
   };
 
-  return renderScreen();
+  return (
+    <>
+      <LanguageHeader />
+      {renderScreen()}
+    </>
+  );
 };
 
 export default Index;

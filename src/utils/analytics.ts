@@ -35,6 +35,11 @@ export const AnalyticsEvents = {
   SURVEY_ANSWER_SELECTED: 'survey_answer_selected',
   SURVEY_COMPLETED: 'survey_completed',
 
+  // End screen events
+  END_SCREEN_VIEW: 'end_screen_view',
+  GAME_FULLY_COMPLETED: 'game_fully_completed',
+  RESTART_FROM_END: 'restart_from_end',
+
   // Dropoff events
   ABANDONED_INTRO: 'abandoned_intro',
   ABANDONED_DRAWING: 'abandoned_drawing',

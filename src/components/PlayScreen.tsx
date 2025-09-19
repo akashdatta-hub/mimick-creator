@@ -3,16 +3,19 @@ import { Button } from '@/components/ui/button';
 import { Wand2, Mic, MicOff } from 'lucide-react';
 import DrawingCanvas from './DrawingCanvas';
 import KidsControls from './KidsControls';
-import { GameWord } from '@/hooks/useGameState';
+import { GameWordKey } from '@/hooks/useGameState';
 import { trackUserFlowEvent } from '@/utils/analytics';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface PlayScreenProps {
-  word: GameWord;
-  getTwistPrompt: (word: GameWord) => string;
+  word: string;
+  wordKey: GameWordKey;
+  getTwistPrompt: (wordKey: GameWordKey) => string;
   onNext: () => void;
 }
 
-export const PlayScreen = ({ word, getTwistPrompt, onNext }: PlayScreenProps) => {
+export const PlayScreen = ({ word, wordKey, getTwistPrompt, onNext }: PlayScreenProps) => {
+  const { t } = useLanguage();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [currentColor, setCurrentColor] = useState('#ef4444');
   const [currentStep, setCurrentStep] = useState(1); // 1=Draw, 2=Twist, 3=Voice, 4=Complete
@@ -67,7 +70,7 @@ export const PlayScreen = ({ word, getTwistPrompt, onNext }: PlayScreenProps) =>
         step: currentStep
       });
       setHasDrawn(true);
-      setTwistPrompt(getTwistPrompt(word));
+      setTwistPrompt(getTwistPrompt(wordKey));
       setCurrentStep(2);
     } else if (currentStep === 2) {
       trackUserFlowEvent('TWIST_CONTINUE', {
@@ -128,20 +131,20 @@ export const PlayScreen = ({ word, getTwistPrompt, onNext }: PlayScreenProps) =>
 
   const getStepTitle = () => {
     switch (currentStep) {
-      case 1: return `Draw your ${word}!`;
-      case 2: return `Now try this twist!`;
-      case 3: return `Say a sentence with "${word}"!`;
-      case 4: return `Amazing work!`;
-      default: return `Draw your ${word}!`;
+      case 1: return t('draw_your_word', `Draw your ${word}!`, { word });
+      case 2: return t('now_try_this_twist', 'Now try this twist!');
+      case 3: return t('say_sentence_with_word', `Say a sentence with "${word}"!`, { word });
+      case 4: return t('amazing_work', 'Amazing work!');
+      default: return t('draw_your_word', `Draw your ${word}!`, { word });
     }
   };
 
   const getStepInstruction = () => {
     switch (currentStep) {
-      case 1: return "Use your creativity to draw what you imagine!";
+      case 1: return t('use_creativity_to_draw', 'Use your creativity to draw what you imagine!');
       case 2: return twistPrompt;
-      case 3: return `Record yourself saying a sentence that includes the word "${word}"`;
-      case 4: return "You completed all the steps! Ready for the next word?";
+      case 3: return t('record_sentence_instruction', `Record yourself saying a sentence that includes the word "${word}"`, { word });
+      case 4: return t('completed_all_steps', 'You completed all the steps! Ready for the next word?');
       default: return "";
     }
   };
@@ -218,7 +221,7 @@ export const PlayScreen = ({ word, getTwistPrompt, onNext }: PlayScreenProps) =>
               size="lg"
               className="bg-purple-500 hover:bg-purple-600 text-white px-8 py-4 text-lg font-bold"
             >
-              Continue! ✨
+              {t('continue', 'Continue! ✨')}
             </Button>
           )}
           
@@ -232,12 +235,12 @@ export const PlayScreen = ({ word, getTwistPrompt, onNext }: PlayScreenProps) =>
               {isRecording ? (
                 <>
                   <MicOff className="w-6 h-6 mr-2" />
-                  Listening...
+                  {t('listening', 'Listening...')}
                 </>
               ) : (
                 <>
                   <Mic className="w-6 h-6 mr-2" />
-                  Record Sentence 🎤
+                  {t('record_sentence', 'Record Sentence 🎤')}
                 </>
               )}
             </Button>
@@ -249,7 +252,7 @@ export const PlayScreen = ({ word, getTwistPrompt, onNext }: PlayScreenProps) =>
               size="lg"
               className="bg-green-500 hover:bg-green-600 text-white px-8 py-4 text-lg font-bold"
             >
-              Next Word! 🎉
+              {t('next_word', 'Next Word! 🎉')}
             </Button>
           )}
         </div>

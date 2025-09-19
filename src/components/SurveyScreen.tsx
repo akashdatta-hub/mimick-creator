@@ -1,94 +1,125 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { trackUserFlowEvent } from '@/utils/analytics';
+import { SURVEY_QUESTIONS, SurveyAnswers } from '@/types/survey';
+import { QuestionComponent } from '@/components/survey/QuestionComponents';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface SurveyScreenProps {
   onComplete: () => void;
 }
 
 export const SurveyScreen = ({ onComplete }: SurveyScreenProps) => {
-  const [selectedAnswer, setSelectedAnswer] = useState<string>('');
-  const [showQuestion, setShowQuestion] = useState(false);
+  const { t } = useLanguage();
+  const [showIntro, setShowIntro] = useState(true);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [answers, setAnswers] = useState<SurveyAnswers>({});
   const [surveyStartTime] = useState<number>(Date.now());
+  const [questionStartTime, setQuestionStartTime] = useState<number>(Date.now());
+
+  const currentQuestion = SURVEY_QUESTIONS[currentQuestionIndex];
+  const isLastQuestion = currentQuestionIndex === SURVEY_QUESTIONS.length - 1;
+  const currentAnswer = answers[currentQuestion?.id];
 
   // Track survey start when component mounts
   useEffect(() => {
-    trackUserFlowEvent('SURVEY_STARTED', {});
+    trackUserFlowEvent('SURVEY_STARTED', {
+      totalQuestions: SURVEY_QUESTIONS.length
+    });
   }, []);
 
-  const handleContinueToSurvey = () => {
-    trackUserFlowEvent('SURVEY_QUESTION_VIEWED', {
-      questionText: 'Would you like to play this game again?'
-    });
-    setShowQuestion(true);
+  // Track question views
+  useEffect(() => {
+    if (currentQuestion) {
+      setQuestionStartTime(Date.now());
+      trackUserFlowEvent('SURVEY_QUESTION_VIEWED', {
+        questionId: currentQuestion.id,
+        questionText: currentQuestion.question,
+        questionNumber: currentQuestionIndex + 1,
+        totalQuestions: SURVEY_QUESTIONS.length
+      });
+    }
+  }, [currentQuestion, currentQuestionIndex]);
+
+  const handleStartSurvey = () => {
+    setShowIntro(false);
   };
 
-  const handleSubmitSurvey = () => {
-    const duration = Date.now() - surveyStartTime;
+  const handleAnswerChange = (value: string | number) => {
+    const newAnswers = { ...answers, [currentQuestion.id]: value };
+    setAnswers(newAnswers);
+
     trackUserFlowEvent('SURVEY_ANSWER_SELECTED', {
-      answer: selectedAnswer,
-      duration
-    });
-    trackUserFlowEvent('SURVEY_COMPLETED', {
-      totalDuration: duration,
-      completed: true
-    });
-    console.log('Survey answer:', selectedAnswer);
-    onComplete();
-  };
-
-  // Handle answer selection tracking
-  const handleAnswerChange = (answer: string) => {
-    setSelectedAnswer(answer);
-    trackUserFlowEvent('SURVEY_ANSWER_SELECTED', {
-      answer,
-      timestamp: Date.now()
+      questionId: currentQuestion.id,
+      answer: value,
+      questionNumber: currentQuestionIndex + 1,
+      timeOnQuestion: Date.now() - questionStartTime
     });
   };
 
-  if (showQuestion) {
+  const handleNext = () => {
+    if (isLastQuestion) {
+      // Complete survey
+      const totalDuration = Date.now() - surveyStartTime;
+      trackUserFlowEvent('SURVEY_COMPLETED', {
+        totalDuration,
+        questionsAnswered: Object.keys(answers).length,
+        totalQuestions: SURVEY_QUESTIONS.length,
+        allAnswers: answers
+      });
+      console.log('Survey completed:', answers);
+      onComplete();
+    } else {
+      // Next question
+      setCurrentQuestionIndex(prev => prev + 1);
+    }
+  };
+
+  const handlePrevious = () => {
+    if (currentQuestionIndex > 0) {
+      setCurrentQuestionIndex(prev => prev - 1);
+    }
+  };
+
+  const isAnswered = () => {
+    if (!currentQuestion) return false;
+    const answer = currentAnswer;
+    if (currentQuestion.type === 'text' && !currentQuestion.required) return true;
+    return answer !== undefined && answer !== '';
+  };
+
+  // Intro screen
+  if (showIntro) {
     return (
       <div className="flex flex-col h-screen bg-gradient-to-br from-purple-100 via-pink-50 to-orange-100">
         <div className="flex-1 flex flex-col items-center justify-center px-6">
-          <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 max-w-lg w-full">
-            {/* Survey Question */}
-            <h1 className="text-2xl font-bold text-gray-800 mb-6 text-center">
-              Quick Reflection
-            </h1>
-
-            <div className="mb-8">
-              <p className="text-lg text-gray-700 mb-4 font-medium">
-                Would you like to play this game again?
-              </p>
-
-              <div className="space-y-3">
-                {[
-                  'Yes, I want to play tomorrow',
-                  'Yes, I want to play with friends tomorrow',
-                  'I don\'t want to play this game'
-                ].map((option) => (
-                  <label key={option} className="flex items-center space-x-3 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="confidence"
-                      value={option}
-                      checked={selectedAnswer === option}
-                      onChange={(e) => handleAnswerChange(e.target.value)}
-                      className="w-4 h-4 text-purple-600 focus:ring-purple-500"
-                    />
-                    <span className="text-gray-700">{option}</span>
-                  </label>
-                ))}
+          <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 max-w-md w-full text-center">
+            <div className="mb-6">
+              <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-4xl">🎉</span>
               </div>
             </div>
 
+            <h1 className="text-3xl font-bold text-gray-800 mb-4">
+              {t('day_1_complete', 'Day 1 Complete!')}
+            </h1>
+
+            <p className="text-lg text-gray-700 mb-6 leading-relaxed">
+              {t('congratulations_day_1', 'Congratulations! You\'ve completed Day 1 of 7.')}
+            </p>
+
+            <div className="bg-blue-50 rounded-2xl p-4 mb-8">
+              <p className="text-sm text-blue-800 font-medium">
+                💡 <strong>{t('did_you_know', 'Did you know?')}</strong> {t('7_days_best_chance', 'Playing this game for 7 days creates the best chance of learning and improving memory of the words you\'ve practiced!')}
+              </p>
+            </div>
+
             <Button
-              onClick={handleSubmitSurvey}
-              disabled={!selectedAnswer}
+              onClick={handleStartSurvey}
               size="lg"
-              className="bg-purple-500 hover:bg-purple-600 disabled:bg-gray-300 text-white px-8 py-3 text-lg font-bold w-full"
+              className="bg-purple-500 hover:bg-purple-600 text-white px-8 py-4 text-lg font-bold w-full"
             >
-              Complete Day 1 ✨
+              {t('continue_to_survey', 'Continue to Survey 📝')}
             </Button>
           </div>
         </div>
@@ -96,40 +127,60 @@ export const SurveyScreen = ({ onComplete }: SurveyScreenProps) => {
     );
   }
 
+  // Question screen
   return (
     <div className="flex flex-col h-screen bg-gradient-to-br from-purple-100 via-pink-50 to-orange-100">
-      <div className="flex-1 flex flex-col items-center justify-center px-6">
-        <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 max-w-md w-full text-center">
-          {/* Success Icon */}
-          <div className="mb-6">
-            <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-4xl">🎉</span>
+      {/* Progress Header */}
+      <div className="bg-white/95 backdrop-blur-sm shadow-sm px-6 py-4">
+        <div className="flex items-center justify-between max-w-2xl mx-auto">
+          <div className="text-sm font-medium text-gray-600">
+            {t('question_of', 'Question %current% of %total%', { current: (currentQuestionIndex + 1).toString(), total: SURVEY_QUESTIONS.length.toString() })}
+          </div>
+          <div className="flex-1 mx-6">
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div
+                className="bg-purple-500 h-2 rounded-full transition-all duration-300"
+                style={{ width: `${((currentQuestionIndex + 1) / SURVEY_QUESTIONS.length) * 100}%` }}
+              />
             </div>
           </div>
-
-          {/* Completion Message */}
-          <h1 className="text-3xl font-bold text-gray-800 mb-4">
-            Day 1 Complete!
-          </h1>
-
-          <p className="text-lg text-gray-700 mb-6 leading-relaxed">
-            Congratulations! You've completed Day 1 of 7.
-          </p>
-
-          {/* Educational Message */}
-          <div className="bg-blue-50 rounded-2xl p-4 mb-8">
-            <p className="text-sm text-blue-800 font-medium">
-              💡 <strong>Did you know?</strong> Playing this game for 7 days creates the best chance of learning and improving memory of the words you've practiced!
-            </p>
+          <div className="text-sm font-medium text-purple-600">
+            {Math.round(((currentQuestionIndex + 1) / SURVEY_QUESTIONS.length) * 100)}%
           </div>
+        </div>
+      </div>
 
-          {/* Continue to Survey Button */}
+      {/* Question Content */}
+      <div className="flex-1 flex items-center justify-center px-6 py-8">
+        <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 max-w-2xl w-full">
+          {currentQuestion && (
+            <QuestionComponent
+              question={currentQuestion}
+              value={currentAnswer}
+              onChange={handleAnswerChange}
+            />
+          )}
+        </div>
+      </div>
+
+      {/* Navigation Footer */}
+      <div className="bg-white/95 backdrop-blur-sm shadow-sm px-6 py-4">
+        <div className="flex justify-between items-center max-w-2xl mx-auto">
           <Button
-            onClick={handleContinueToSurvey}
-            size="lg"
-            className="bg-purple-500 hover:bg-purple-600 text-white px-8 py-4 text-lg font-bold w-full"
+            onClick={handlePrevious}
+            variant="outline"
+            disabled={currentQuestionIndex === 0}
+            className="px-6"
           >
-            Continue to Quick Survey 📝
+            {t('previous', '← Previous')}
+          </Button>
+
+          <Button
+            onClick={handleNext}
+            disabled={!isAnswered()}
+            className="bg-purple-500 hover:bg-purple-600 text-white px-8 py-3 font-bold"
+          >
+            {isLastQuestion ? t('complete_survey', 'Complete Survey ✨') : t('next', 'Next →')}
           </Button>
         </div>
       </div>

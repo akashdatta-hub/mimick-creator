@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Volume2, Sun, Cat, Zap } from 'lucide-react';
-import { GameWord } from '@/hooks/useGameState';
+import { GameWordKey } from '@/hooks/useGameState';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface IntroScreenProps {
-  word: GameWord;
+  word: string;
   clue: string;
   onNext: () => void;
 }
@@ -16,8 +17,18 @@ const wordIcons = {
 };
 
 export const IntroScreen = ({ word, clue, onNext }: IntroScreenProps) => {
+  const { t } = useLanguage();
   const [showClue, setShowClue] = useState(false);
-  const Icon = wordIcons[word];
+
+  // Get icon based on word content (works for both Hindi and English)
+  const getIconForWord = (word: string) => {
+    if (word === 'sun' || word === 'सूरज') return Sun;
+    if (word === 'cat' || word === 'बिल्ली') return Cat;
+    if (word === 'ball' || word === 'गेंद') return Zap;
+    return Sun; // fallback
+  };
+
+  const Icon = getIconForWord(word);
 
   const handleYes = () => onNext();
   const handleNo = () => setShowClue(true);
@@ -52,27 +63,27 @@ export const IntroScreen = ({ word, clue, onNext }: IntroScreenProps) => {
         {!showClue ? (
           <div className="space-y-6">
             <h2 className="text-xl font-semibold text-gray-700">
-              Do you know this word?
+              {t('intro.do_you_know', 'Do you know this word?')}
             </h2>
             <div className="flex flex-col space-y-3">
               <Button
                 onClick={handleYes}
                 className="bg-green-500 hover:bg-green-600 text-white py-4 text-lg rounded-2xl"
               >
-                ✅ Yes, I know it!
+                ✅ {t('intro.yes_i_know', 'Yes, I know it!')}
               </Button>
               <Button
                 onClick={handleNo}
                 className="bg-yellow-500 hover:bg-yellow-600 text-white py-4 text-lg rounded-2xl"
               >
-                ❓ No, tell me more
+                ❓ {t('intro.no_tell_more', 'No, tell me more')}
               </Button>
               <Button
                 onClick={handleSkip}
                 variant="ghost"
                 className="text-gray-600 py-2"
               >
-                Skip this word
+                {t('intro.skip_word', 'Skip this word')}
               </Button>
             </div>
           </div>
@@ -86,7 +97,7 @@ export const IntroScreen = ({ word, clue, onNext }: IntroScreenProps) => {
               onClick={onNext}
               className="bg-primary hover:bg-primary/90 text-primary-foreground w-full py-4 text-lg rounded-2xl"
             >
-              🎨 Let's Draw!
+              🎨 {t('intro.lets_draw', 'Let\'s Draw!')}
             </Button>
           </div>
         )}
