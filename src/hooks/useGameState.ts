@@ -43,7 +43,7 @@ export const useGameState = () => {
         return { ...prev, currentScreen: 'celebrate' };
       }
       if (prev.currentScreen === 'celebrate') {
-        // After completing 3rd word, go to survey
+        // After completing 3rd word, go to survey - GAME ENDS
         if (prev.currentRound === prev.totalRounds) {
           return {
             ...prev,
@@ -61,7 +61,8 @@ export const useGameState = () => {
           completedWords: [...prev.completedWords, prev.currentWord]
         };
       }
-      return prev; // From survey screen, stay put
+      // From survey screen - STAY PUT, NO MORE NAVIGATION
+      return prev;
     });
   };
 
@@ -81,7 +82,7 @@ export const useGameState = () => {
     return prompts[Math.floor(Math.random() * prompts.length)];
   };
 
-  const isGameComplete = () => gameState.currentRound === gameState.totalRounds && gameState.currentScreen === 'celebrate';
+  const isGameComplete = () => gameState.currentScreen === 'survey';
 
   const goToReflection = () => {
     // This function can be used to navigate to reflection/survey questions

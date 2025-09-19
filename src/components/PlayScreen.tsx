@@ -1,9 +1,10 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Wand2, Mic, MicOff } from 'lucide-react';
 import DrawingCanvas from './DrawingCanvas';
 import KidsControls from './KidsControls';
 import { GameWord } from '@/hooks/useGameState';
+import { trackUserFlowEvent } from '@/utils/analytics';
 
 interface PlayScreenProps {
   word: GameWord;
@@ -14,35 +15,38 @@ interface PlayScreenProps {
 export const PlayScreen = ({ word, getTwistPrompt, onNext }: PlayScreenProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [currentColor, setCurrentColor] = useState('#ef4444');
-  const [canvasHistory, setCanvasHistory] = useState<ImageData[]>([]);
   const [currentStep, setCurrentStep] = useState(1); // 1=Draw, 2=Twist, 3=Voice, 4=Complete
   const [twistPrompt, setTwistPrompt] = useState<string>('');
   const [isRecording, setIsRecording] = useState(false);
   const [hasDrawn, setHasDrawn] = useState(false);
+  const [stepStartTime, setStepStartTime] = useState<number>(Date.now());
 
-  const saveCanvasState = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    setCanvasHistory(prev => [...prev.slice(-9), imageData]);
-  };
+  // Track step changes
+  useEffect(() => {
+    const stepEvents = {
+      1: 'DRAW_STEP_VIEW',
+      2: 'TWIST_STEP_VIEW',
+      3: 'VOICE_STEP_VIEW',
+      4: 'COMPLETE_STEP_VIEW'
+    } as const;
+
+    const eventName = stepEvents[currentStep as keyof typeof stepEvents];
+    if (eventName) {
+      setStepStartTime(Date.now());
+      trackUserFlowEvent(eventName, {
+        word,
+        step: currentStep,
+        twistPrompt: currentStep === 2 ? twistPrompt : undefined
+      });
+    }
+  }, [currentStep, word, twistPrompt]);
+
 
   const handleCanvasReady = (canvas: HTMLCanvasElement) => {
     canvasRef.current = canvas;
     // Don't save state immediately to prevent infinite loop
   };
 
-  const handleUndo = () => {
-    const canvas = canvasRef.current;
-    if (!canvas || canvasHistory.length === 0) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    const lastState = canvasHistory[canvasHistory.length - 1];
-    ctx.putImageData(lastState, 0, 0);
-    setCanvasHistory(prev => prev.slice(0, -1));
-  };
 
   const handleClear = () => {
     const canvas = canvasRef.current;
@@ -51,16 +55,27 @@ export const PlayScreen = ({ word, getTwistPrompt, onNext }: PlayScreenProps) =>
     if (!ctx) return;
     ctx.fillStyle = '#fef9f3';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    setCanvasHistory([]);
   };
 
   const handleNextStep = () => {
+    const duration = Date.now() - stepStartTime;
+
     if (currentStep === 1) {
+      trackUserFlowEvent('DRAWING_COMPLETED', {
+        word,
+        duration,
+        step: currentStep
+      });
       setHasDrawn(true);
-      saveCanvasState();
       setTwistPrompt(getTwistPrompt(word));
       setCurrentStep(2);
     } else if (currentStep === 2) {
+      trackUserFlowEvent('TWIST_CONTINUE', {
+        word,
+        duration,
+        step: currentStep,
+        twistPrompt
+      });
       setCurrentStep(3);
     } else if (currentStep === 3) {
       setCurrentStep(4);
@@ -70,17 +85,37 @@ export const PlayScreen = ({ word, getTwistPrompt, onNext }: PlayScreenProps) =>
   };
 
   const handleVoiceRecord = () => {
+    trackUserFlowEvent('VOICE_RECORDING_STARTED', {
+      word,
+      step: currentStep
+    });
+
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      // Voice not supported, skip to next step
+      trackUserFlowEvent('VOICE_RECORDING_COMPLETED', {
+        word,
+        step: currentStep,
+        success: false,
+        reason: 'not_supported'
+      });
       handleNextStep();
       return;
     }
 
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     const recognition = new SpeechRecognition();
-    
+    const voiceStartTime = Date.now();
+
     recognition.onstart = () => setIsRecording(true);
     recognition.onend = () => {
+      const duration = Date.now() - voiceStartTime;
       setIsRecording(false);
+      trackUserFlowEvent('VOICE_RECORDING_COMPLETED', {
+        word,
+        step: currentStep,
+        duration,
+        success: true
+      });
       handleNextStep();
     };
     recognition.onresult = (event: any) => {
@@ -172,15 +207,8 @@ export const PlayScreen = ({ word, getTwistPrompt, onNext }: PlayScreenProps) =>
                 currentColor={currentColor}
                 onColorChange={setCurrentColor}
                 onClear={handleClear}
-                onUndo={handleUndo}
+                onDone={handleNextStep}
               />
-              <Button
-                onClick={handleNextStep}
-                size="lg"
-                className="bg-green-500 hover:bg-green-600 text-white px-8 py-4 text-lg font-bold"
-              >
-                I'm Done Drawing! ✏️
-              </Button>
             </>
           )}
           

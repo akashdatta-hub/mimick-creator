@@ -107,17 +107,12 @@ export const CelebrateScreen = ({
 
         {/* Next Button */}
         {isGameComplete ? (
-          <div className="space-y-3">
-            <h2 className="text-xl font-bold text-green-600">
-              🏆 Game Complete! 🏆
-            </h2>
-            <Button
-              onClick={onRestart}
-              className="bg-green-500 hover:bg-green-600 text-white w-full py-4 text-lg rounded-2xl"
-            >
-              🎮 Play Again
-            </Button>
-          </div>
+          <Button
+            onClick={onNext}
+            className="bg-purple-500 hover:bg-purple-600 text-white w-full py-4 text-lg rounded-2xl"
+          >
+            Complete Day 1 ✨
+          </Button>
         ) : (
           <Button
             onClick={onNext}

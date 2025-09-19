@@ -1,11 +1,11 @@
 import { Button } from "@/components/ui/button";
-import { Trash2, Undo, Eraser, Palette } from "lucide-react";
+import { Trash2, Palette } from "lucide-react";
 
 interface KidsControlsProps {
   currentColor: string;
   onColorChange: (color: string) => void;
   onClear: () => void;
-  onUndo: () => void;
+  onDone: () => void;
 }
 
 const colors = [
@@ -23,54 +23,55 @@ const KidsControls = ({
   currentColor,
   onColorChange,
   onClear,
-  onUndo,
+  onDone,
 }: KidsControlsProps) => {
   return (
-    <div className="flex flex-wrap items-center justify-center gap-4">
-      {/* Color Picker */}
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="flex items-center space-x-1 mr-2">
-          <Palette className="w-5 h-5 text-purple-500" />
-          <span className="text-sm font-medium text-gray-700">Pick a Color:</span>
+    <div className="w-full max-w-4xl mx-auto">
+      {/* Color Picker Section */}
+      <div className="mb-6">
+        <div className="flex items-center justify-center mb-4">
+          <Palette className="w-5 h-5 text-purple-500 mr-2" />
+          <span className="text-base font-medium text-gray-700">Pick a Color:</span>
         </div>
-        {colors.map((color) => (
-          <button
-            key={color.value}
-            onClick={() => onColorChange(color.value)}
-            className={`w-14 h-14 rounded-full border-4 transition-all duration-200 hover:scale-110 flex items-center justify-center text-lg ${
-              currentColor === color.value
-                ? 'border-gray-800 shadow-lg scale-110'
-                : 'border-white shadow-md hover:shadow-lg'
-            }`}
-            style={{ backgroundColor: color.value }}
-            title={color.name}
-          >
-            {currentColor === color.value && (
-              <span className="text-white text-xl">✓</span>
-            )}
-          </button>
-        ))}
+        <div className="flex items-center justify-center gap-3 flex-wrap">
+          {colors.map((color) => (
+            <button
+              key={color.value}
+              onClick={() => onColorChange(color.value)}
+              className={`w-12 h-12 rounded-full transition-all duration-200 hover:scale-105 active:scale-95 flex items-center justify-center shadow-sm ${
+                currentColor === color.value
+                  ? 'ring-4 ring-gray-800 ring-offset-2 scale-105'
+                  : 'hover:shadow-md'
+              }`}
+              style={{ backgroundColor: color.value }}
+              title={color.name}
+              aria-label={`Select ${color.name} color`}
+            >
+              {currentColor === color.value && (
+                <span className="text-white text-lg font-bold">✓</span>
+              )}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Action Buttons */}
-      <div className="flex items-center gap-2">
-        <Button
-          onClick={onUndo}
-          variant="outline"
-          size="lg"
-          className="h-12 px-4 border-blue-300 text-blue-600 hover:bg-blue-50"
-        >
-          <Undo className="w-4 h-4 mr-2" />
-          Undo
-        </Button>
+      {/* Action Buttons Section */}
+      <div className="flex justify-center gap-4 flex-wrap">
         <Button
           onClick={onClear}
           variant="outline"
           size="lg"
-          className="h-12 px-4 border-red-300 text-red-600 hover:bg-red-50"
+          className="h-12 px-6 border-2 border-red-300 text-red-600 hover:bg-red-50 hover:border-red-400 transition-colors duration-200 font-medium"
         >
-          <Trash2 className="w-4 h-4 mr-2" />
+          <Trash2 className="w-5 h-5 mr-2" />
           Clear All
+        </Button>
+        <Button
+          onClick={onDone}
+          size="lg"
+          className="bg-green-500 hover:bg-green-600 text-white px-8 py-3 h-12 text-lg font-bold transition-colors duration-200"
+        >
+          I'm Done Drawing! ✏️
         </Button>
       </div>
     </div>
