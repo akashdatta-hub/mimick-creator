@@ -2,15 +2,17 @@ import { useGameState } from "@/hooks/useGameState";
 import { IntroScreen } from "@/components/IntroScreen";
 import { PlayScreen } from "@/components/PlayScreen";
 import { CelebrateScreen } from "@/components/CelebrateScreen";
+import { SurveyScreen } from "@/components/SurveyScreen";
 
 const Index = () => {
-  const { 
-    gameState, 
-    nextScreen, 
-    resetGame, 
-    getClue, 
-    getTwistPrompt, 
-    isGameComplete 
+  const {
+    gameState,
+    nextScreen,
+    resetGame,
+    getClue,
+    getTwistPrompt,
+    isGameComplete,
+    goToReflection
   } = useGameState();
 
   const renderScreen = () => {
@@ -40,6 +42,12 @@ const Index = () => {
             onNext={nextScreen}
             isGameComplete={isGameComplete()}
             onRestart={resetGame}
+          />
+        );
+      case 'survey':
+        return (
+          <SurveyScreen
+            onReflect={goToReflection}
           />
         );
       default:

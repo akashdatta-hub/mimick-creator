@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-export type GameScreen = 'intro' | 'play' | 'celebrate';
+export type GameScreen = 'intro' | 'play' | 'celebrate' | 'survey';
 export type GameWord = 'sun' | 'cat' | 'ball';
 
 export interface GameState {
@@ -42,8 +42,16 @@ export const useGameState = () => {
       if (prev.currentScreen === 'play') {
         return { ...prev, currentScreen: 'celebrate' };
       }
-      // From celebrate, go to next word or end
-      if (prev.currentRound < prev.totalRounds) {
+      if (prev.currentScreen === 'celebrate') {
+        // After completing 3rd word, go to survey
+        if (prev.currentRound === prev.totalRounds) {
+          return {
+            ...prev,
+            currentScreen: 'survey',
+            completedWords: [...prev.completedWords, prev.currentWord]
+          };
+        }
+        // Otherwise go to next word
         const nextRound = prev.currentRound + 1;
         return {
           ...prev,
@@ -53,7 +61,7 @@ export const useGameState = () => {
           completedWords: [...prev.completedWords, prev.currentWord]
         };
       }
-      return prev; // Game complete
+      return prev; // From survey screen, stay put
     });
   };
 
@@ -75,12 +83,19 @@ export const useGameState = () => {
 
   const isGameComplete = () => gameState.currentRound === gameState.totalRounds && gameState.currentScreen === 'celebrate';
 
+  const goToReflection = () => {
+    // This function can be used to navigate to reflection/survey questions
+    // For now, we'll keep the user on the survey screen
+    console.log('Starting reflection phase...');
+  };
+
   return {
     gameState,
     nextScreen,
     resetGame,
     getClue,
     getTwistPrompt,
-    isGameComplete
+    isGameComplete,
+    goToReflection
   };
 };
